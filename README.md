@@ -41,7 +41,17 @@ node server.mjs
 
 السيرفر يعمل على `http://localhost:8787`
 
-### 3. النشر على Cloudflare Workers
+### 3. النشر على Netlify (الأسهل)
+
+1. ادخل على [Netlify Dashboard](https://app.netlify.com/)
+2. اضغط **Add new site** -> **Import an existing project**
+3. اختر مستودع GitHub: `tenthpowerserver`
+4. في قسم **Environment variables** أضف:
+   - `NEON_DATABASE_URL` = رابط قاعدة بيانات Neon
+   - `COMPANY_SLUG` = `tenth-power`
+5. اضغط **Deploy Site** وسيعمل السيرفر فوراً على رابط مجاني مثل `https://your-site.netlify.app/api/v1/health`
+
+### 4. النشر على Cloudflare Workers (اختياري)
 
 ```bash
 npm install
@@ -58,4 +68,6 @@ npx wrangler secret put NEON_DATABASE_URL
 
 - ملف `.env` مستثنى من Git تلقائياً
 - لا يُكشف عن بيانات قاعدة البيانات في أي حال
+- محمي بـ CORS ومناسب لتطبيقات الجوال والويب
+
 - يجب ضبط CORS في الإنتاج لقبول طلبات التطبيق فقط
