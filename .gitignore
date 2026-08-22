@@ -3,3 +3,6 @@ dist/
 .env
 *.log
 .wrangler/
+check_recent.mjs
+check_quote_schema.mjs
+check_push_schema.mjs
