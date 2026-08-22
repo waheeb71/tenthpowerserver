@@ -4,4 +4,4 @@ compatibility_date = "2024-05-12"
 
 [vars]
 COMPANY_SLUG = "tenth-power"
-CLOUDFLARE_R2_URL = "https://pub-e9788e46474044d585e2622e2c6ce74d.r2.dev"
+
