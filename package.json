@@ -1,0 +1,24 @@
+{
+  "name": "tenthpower-api-worker",
+  "version": "1.0.0",
+  "description": "Tenth Power Mobile App Edge API Worker Gateway",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/node.ts",
+    "build": "tsc",
+    "start": "node dist/node.js",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.11.1",
+    "dotenv": "^16.4.5",
+    "hono": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.57.2"
+  }
+}
