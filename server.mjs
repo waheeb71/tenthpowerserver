@@ -98,7 +98,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/v1/company' && req.method === 'GET') {
       const slug = url.searchParams.get('slug') || COMPANY_SLUG;
       const rows = await queryNeon(
-        `SELECT * FROM companies WHERE slug = $1 OR id::text = $1 LIMIT 1`,
+        `SELECT * FROM companies WHERE slug = $1 OR slug ILIKE '%tenth%' OR id::text = $1 LIMIT 1`,
         [slug]
       );
 
@@ -316,8 +316,8 @@ const server = http.createServer(async (req, res) => {
 
           if (service_type) {
             executeNeon(
-              `INSERT INTO quote_requests (description, status, created_at) VALUES ($1, 'pending', NOW())`,
-              [content]
+              `INSERT INTO quote_requests (id, company_id, description, status, created_at) VALUES (gen_random_uuid(), (SELECT id FROM companies WHERE slug = $1 OR slug ILIKE '%tenth%' LIMIT 1), $2, 'pending', NOW())`,
+              [COMPANY_SLUG, content]
             );
           }
 
@@ -340,8 +340,10 @@ const server = http.createServer(async (req, res) => {
           if (!token) return json({ success: false, error: 'Token is required' }, 400);
 
           const ok = await executeNeon(
-            `INSERT INTO push_subscriptions (endpoint, auth, p256dh, created_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (endpoint) DO NOTHING`,
-            [token, platform || 'fcm_android', JSON.stringify(device_info || {})]
+            `INSERT INTO push_subscriptions (id, company_id, endpoint, auth, p256dh, is_active, created_at)
+             VALUES (gen_random_uuid(), (SELECT id FROM companies WHERE slug = $1 OR slug ILIKE '%tenth%' LIMIT 1), $2, $3, $4, true, NOW())
+             ON CONFLICT (endpoint) DO UPDATE SET is_active = true`,
+            [COMPANY_SLUG, token, platform || 'fcm_android', JSON.stringify(device_info || {})]
           );
           return json({ success: ok, message: ok ? 'Subscribed' : 'Failed' });
         } catch (e) {
