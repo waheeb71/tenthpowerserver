@@ -37,7 +37,7 @@ companyRouter.get('/', async (c) => {
             'إكسسوارات ومفصلات أوروبية فاخرة ومقاومة للصدأ والعوامل الجوية.',
             'أسعار تنافسية وضمانات معتمدة على كافة أعمال التركيب.'
           ],
-          logo_url: 'https://pub-e9788e46474044d585e2622e2c6ce74d.r2.dev/company/logo.png',
+          logo_url: 'assets/icons/app_logo.webp',
           phone_primary: '+966532438253',
           whatsapp_number: '966532438253',
           email: 'info@tenthpower.com',

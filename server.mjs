@@ -145,7 +145,7 @@ const server = http.createServer(async (req, res) => {
           mission_ar: 'تقديم أعمال مقاولات وتركيبات زجاجية ذات جودة متناهية تفوق توقعات عملائنا.',
           goals_ar: ['تحقيق أعلى مستويات الأمان والعزل الحراري والصوتي.', 'توفير حلول تصميمية عصرية تلبي متطلبات المشاريع الحديثة.'],
           why_us_ar: ['خبرة متراكمة وأيدي هندسية متخصصة ومحترفة.', 'استخدام قطاعات ألمنيوم وزجاج سيكوريت عالي الجودة.'],
-          logo_url: 'https://pub-e9788e46474044d585e2622e2c6ce74d.r2.dev/company/logo.png',
+          logo_url: 'assets/icons/app_logo.webp',
           phone_primary: '+966532438253',
           whatsapp_number: '966532438253',
           email: 'info@tenthpower.com',
