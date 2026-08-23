@@ -369,7 +369,11 @@ const server = http.createServer(async (req, res) => {
           }
 
           // إرسال إشعار فوري لمدراء النظام عبر بوت تلجرام
-          notifyTelegramAdmins({ name, phone, message, service_type });
+          try {
+            await notifyTelegramAdmins({ name, phone, message, service_type });
+          } catch (tgErr) {
+            console.error('Telegram notification error:', tgErr.message);
+          }
 
           return json({ success: true, message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.' });
         } catch (e) {

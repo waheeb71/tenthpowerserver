@@ -337,14 +337,18 @@ ${escapeHtml(data.message)}
       );
 
       if (service_type) {
-        executeNeon(
+        await executeNeon(
           `INSERT INTO quote_requests (id, company_id, description, status, created_at) VALUES (gen_random_uuid(), (SELECT id FROM companies WHERE slug = $1 OR slug ILIKE '%tenth%' LIMIT 1), $2, 'pending', NOW())`,
           [COMPANY_SLUG, content]
         );
       }
 
-      // إرسال إشعار فوري لمدراء النظام عبر بوت تلجرام
-      notifyTelegramAdmins({ name, phone, message, service_type });
+      // إرسال إشعار فوري لمدراء النظام عبر بوت تلجرام والانتظار حتى اكتمال الإرسال قبل إنهاء الدالة
+      try {
+        await notifyTelegramAdmins({ name, phone, message, service_type });
+      } catch (tgErr) {
+        console.error('Telegram notification failed:', tgErr.message);
+      }
 
       return json({ success: true, message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.' });
     }

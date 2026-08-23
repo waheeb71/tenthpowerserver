@@ -99,7 +99,11 @@ contactRouter.post('/', async (c) => {
     }
 
     // 4. Send Telegram notification
-    notifyTelegramAdmins({ name, phone, message, service_type });
+    try {
+      await notifyTelegramAdmins({ name, phone, message, service_type });
+    } catch (tgErr: any) {
+      console.error('Telegram notification error:', tgErr.message);
+    }
 
     return c.json({
       success: true,
