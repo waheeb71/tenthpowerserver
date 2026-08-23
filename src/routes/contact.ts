@@ -3,6 +3,55 @@ import { executeNeon } from '../db/neon.js';
 
 export const contactRouter = new Hono();
 
+function escapeHtml(str: string) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function notifyTelegramAdmins(data: { name: string; phone: string; service_type?: string; message: string }) {
+  const token = process.env.TELEGRAM_BOT_TOKEN || '8955032327:AAF2Uehcl6-cRr3MfIckeoLuFrRjyqO9bdo';
+  const adminIds = (process.env.TELEGRAM_ADMIN_IDS || '123456789,5887234832')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!token || adminIds.length === 0) return;
+
+  const time = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' });
+  const text = 
+`🔔 <b>طلب عرض سعر جديد من التطبيق</b> 🏗️
+━━━━━━━━━━━━━━━━━━━
+👤 <b>الاسم:</b> ${escapeHtml(data.name)}
+📱 <b>الجوال:</b> <code>${escapeHtml(data.phone)}</code>
+🏢 <b>الخدمة:</b> ${escapeHtml(data.service_type || 'طلب عام')}
+📝 <b>تفاصيل الطلب:</b>
+${escapeHtml(data.message)}
+━━━━━━━━━━━━━━━━━━━
+🕒 <b>الوقت:</b> ${time}
+📱 <b>المصدر:</b> تطبيق الجوال (Tenth Power App)`;
+
+  const promises = adminIds.map(async (chatId) => {
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: 'HTML',
+        }),
+      });
+    } catch (err: any) {
+      console.error(`Telegram notify error for ${chatId}:`, err.message);
+    }
+  });
+
+  await Promise.allSettled(promises);
+}
+
 contactRouter.post('/', async (c) => {
   try {
     const body = await c.req.json();
@@ -40,14 +89,17 @@ contactRouter.post('/', async (c) => {
       [name, phone]
     );
 
-    // 3. Insert into quote_requests if service specified
+    // 3. Insert into quote_requests with company_id & UUID
     if (service_type) {
       executeNeon(
-        `INSERT INTO quote_requests (description, status, created_at)
-         VALUES ($1, 'pending', NOW())`,
+        `INSERT INTO quote_requests (id, company_id, description, status, created_at)
+         VALUES (gen_random_uuid(), (SELECT id FROM companies WHERE slug = 'tenth-power' OR slug ILIKE '%tenth%' LIMIT 1), $1, 'pending', NOW())`,
         [content]
       );
     }
+
+    // 4. Send Telegram notification
+    notifyTelegramAdmins({ name, phone, message, service_type });
 
     return c.json({
       success: true,

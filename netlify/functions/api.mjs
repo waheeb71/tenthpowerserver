@@ -25,6 +25,53 @@ export default async (req, context) => {
 
   const NEON_CONN = process.env.NEON_DATABASE_URL || 'postgresql://neondb_owner:npg_d2oRPN7OIcmA@ep-muddy-cloud-axv9ixcc-pooler.c-4.us-east-2.aws.neon.tech/Powerof10?sslmode=require&channel_binding=require';
   const COMPANY_SLUG = process.env.COMPANY_SLUG || 'tenth-power';
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8955032327:AAF2Uehcl6-cRr3MfIckeoLuFrRjyqO9bdo';
+  const TELEGRAM_ADMIN_IDS = (process.env.TELEGRAM_ADMIN_IDS || '123456789,5887234832')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  async function notifyTelegramAdmins(data) {
+    if (!TELEGRAM_BOT_TOKEN || TELEGRAM_ADMIN_IDS.length === 0) return;
+    const time = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' });
+    const text = 
+`🔔 <b>طلب عرض سعر جديد من التطبيق</b> 🏗️
+━━━━━━━━━━━━━━━━━━━
+👤 <b>الاسم:</b> ${escapeHtml(data.name)}
+📱 <b>الجوال:</b> <code>${escapeHtml(data.phone)}</code>
+🏢 <b>الخدمة:</b> ${escapeHtml(data.service_type || 'طلب عام')}
+📝 <b>تفاصيل الطلب:</b>
+${escapeHtml(data.message)}
+━━━━━━━━━━━━━━━━━━━
+🕒 <b>الوقت:</b> ${time}
+📱 <b>المصدر:</b> تطبيق الجوال (Tenth Power App)`;
+
+    const promises = TELEGRAM_ADMIN_IDS.map(async (chatId) => {
+      try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'HTML',
+          }),
+        });
+      } catch (err) {
+        console.error(`Telegram notify error for ${chatId}:`, err.message);
+      }
+    });
+
+    await Promise.allSettled(promises);
+  }
 
   async function queryNeon(sql, params = []) {
     const match = NEON_CONN.match(/@([^/]+)\//);
@@ -295,6 +342,9 @@ export default async (req, context) => {
           [COMPANY_SLUG, content]
         );
       }
+
+      // إرسال إشعار فوري لمدراء النظام عبر بوت تلجرام
+      notifyTelegramAdmins({ name, phone, message, service_type });
 
       return json({ success: true, message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.' });
     }
