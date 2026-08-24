@@ -16,8 +16,8 @@ async function notifyTelegramAdmins(data: { name: string; phone: string; service
   const defaultAdminIds = ['5887234832'];
   const envAdminIds = (process.env.TELEGRAM_ADMIN_IDS || '')
     .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s && s !== '123456789');
+    .map((s: string) => s.trim())
+    .filter((s: string) => Boolean(s) && s !== '123456789');
   const adminIds = Array.from(new Set([...defaultAdminIds, ...envAdminIds]));
 
   if (!token || adminIds.length === 0) {
