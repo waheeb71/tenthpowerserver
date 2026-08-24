@@ -13,12 +13,16 @@ function escapeHtml(str: string) {
 
 async function notifyTelegramAdmins(data: { name: string; phone: string; service_type?: string; message: string }) {
   const token = process.env.TELEGRAM_BOT_TOKEN || '8955032327:AAF2Uehcl6-cRr3MfIckeoLuFrRjyqO9bdo';
-  const adminIds = (process.env.TELEGRAM_ADMIN_IDS || '123456789,5887234832')
+  const defaultAdminIds = ['5887234832'];
+  const envAdminIds = (process.env.TELEGRAM_ADMIN_IDS || '')
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter((s) => s && s !== '123456789');
+  const adminIds = Array.from(new Set([...defaultAdminIds, ...envAdminIds]));
 
-  if (!token || adminIds.length === 0) return;
+  if (!token || adminIds.length === 0) {
+    return [{ ok: false, description: 'Missing token or admin IDs' }];
+  }
 
   const time = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' });
   const text = 
@@ -33,9 +37,10 @@ ${escapeHtml(data.message)}
 🕒 <b>الوقت:</b> ${time}
 📱 <b>المصدر:</b> تطبيق الجوال (Tenth Power App)`;
 
-  const promises = adminIds.map(async (chatId) => {
+  const deliveryResults = [];
+  for (const chatId of adminIds) {
     try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -44,12 +49,13 @@ ${escapeHtml(data.message)}
           parse_mode: 'HTML',
         }),
       });
+      const json = await res.json();
+      deliveryResults.push({ chatId, ok: json.ok, description: json.description });
     } catch (err: any) {
-      console.error(`Telegram notify error for ${chatId}:`, err.message);
+      deliveryResults.push({ chatId, ok: false, error: err.message });
     }
-  });
-
-  await Promise.allSettled(promises);
+  }
+  return deliveryResults;
 }
 
 contactRouter.post('/', async (c) => {
@@ -99,15 +105,18 @@ contactRouter.post('/', async (c) => {
     }
 
     // 4. Send Telegram notification
+    let tgDelivery = [];
     try {
-      await notifyTelegramAdmins({ name, phone, message, service_type });
+      tgDelivery = await notifyTelegramAdmins({ name, phone, message, service_type });
     } catch (tgErr: any) {
       console.error('Telegram notification error:', tgErr.message);
+      tgDelivery = [{ ok: false, error: tgErr.message }];
     }
 
     return c.json({
       success: true,
       message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.',
+      telegram_delivery: tgDelivery,
     });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);

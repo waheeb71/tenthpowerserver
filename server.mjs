@@ -29,10 +29,12 @@ const PORT = Number(process.env.PORT) || 8787;
 const NEON_CONN = process.env.NEON_DATABASE_URL || 'postgresql://neondb_owner:npg_d2oRPN7OIcmA@ep-muddy-cloud-axv9ixcc-pooler.c-4.us-east-2.aws.neon.tech/Powerof10?sslmode=require&channel_binding=require';
 const COMPANY_SLUG = process.env.COMPANY_SLUG || 'tenth-power';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8955032327:AAF2Uehcl6-cRr3MfIckeoLuFrRjyqO9bdo';
-const TELEGRAM_ADMIN_IDS = (process.env.TELEGRAM_ADMIN_IDS || '123456789,5887234832')
+const defaultAdminIds = ['5887234832'];
+const envAdminIds = (process.env.TELEGRAM_ADMIN_IDS || '')
   .split(',')
   .map((s) => s.trim())
-  .filter(Boolean);
+  .filter((s) => s && s !== '123456789');
+const TELEGRAM_ADMIN_IDS = Array.from(new Set([...defaultAdminIds, ...envAdminIds]));
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -43,7 +45,10 @@ function escapeHtml(str) {
 }
 
 async function notifyTelegramAdmins(data) {
-  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_ADMIN_IDS.length === 0) return;
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_ADMIN_IDS.length === 0) {
+    console.warn('Telegram notify skipped: missing token or admins');
+    return [{ ok: false, description: 'Missing token or admin IDs' }];
+  }
   const time = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' });
   const text = 
 `🔔 <b>طلب عرض سعر جديد من التطبيق</b> 🏗️
@@ -57,9 +62,10 @@ ${escapeHtml(data.message)}
 🕒 <b>الوقت:</b> ${time}
 📱 <b>المصدر:</b> تطبيق الجوال (Tenth Power App)`;
 
-  const promises = TELEGRAM_ADMIN_IDS.map(async (chatId) => {
+  const deliveryResults = [];
+  for (const chatId of TELEGRAM_ADMIN_IDS) {
     try {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,12 +74,13 @@ ${escapeHtml(data.message)}
           parse_mode: 'HTML',
         }),
       });
+      const json = await res.json();
+      deliveryResults.push({ chatId, ok: json.ok, description: json.description });
     } catch (err) {
-      console.error(`Telegram notify error for ${chatId}:`, err.message);
+      deliveryResults.push({ chatId, ok: false, error: err.message });
     }
-  });
-
-  await Promise.allSettled(promises);
+  }
+  return deliveryResults;
 }
 
 // Neon SQL Query Executor over HTTP
@@ -369,13 +376,19 @@ const server = http.createServer(async (req, res) => {
           }
 
           // إرسال إشعار فوري لمدراء النظام عبر بوت تلجرام
+          let tgDelivery = [];
           try {
-            await notifyTelegramAdmins({ name, phone, message, service_type });
+            tgDelivery = await notifyTelegramAdmins({ name, phone, message, service_type });
           } catch (tgErr) {
             console.error('Telegram notification error:', tgErr.message);
+            tgDelivery = [{ ok: false, error: tgErr.message }];
           }
 
-          return json({ success: true, message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.' });
+          return json({
+            success: true,
+            message: 'تم إرسال طلبك بنجاح وسيتواصل معك مهندسونا فوراً.',
+            telegram_delivery: tgDelivery,
+          });
         } catch (e) {
           return json({ success: false, error: e.message }, 400);
         }
