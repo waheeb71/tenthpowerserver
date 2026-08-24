@@ -1,5 +1,7 @@
 [build]
+  command = "echo 'Build complete'"
   functions = "netlify/functions"
+  publish = "."
 
 [[redirects]]
   from = "/*"

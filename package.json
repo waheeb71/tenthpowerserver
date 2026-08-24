@@ -5,10 +5,9 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/node.ts",
-    "build": "tsc",
-    "start": "node dist/node.js",
-    "deploy": "wrangler deploy"
+    "dev": "node server.mjs",
+    "build": "echo 'Build OK'",
+    "start": "node server.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",
