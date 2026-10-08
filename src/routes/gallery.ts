@@ -6,10 +6,18 @@ export const galleryRouter = new Hono();
 galleryRouter.get('/', async (c) => {
   try {
     const rows = await queryNeon(
-      `SELECT id, file_name, file_url, cdn_url, title_ar, category 
-       FROM media_library 
-       WHERE is_public = true 
-       ORDER BY created_at DESC`
+      `SELECT
+         ml.id,
+         ml.cdn_url,
+         ml.webp_url,
+         ml.file_url,
+         ml.category,
+         mm.title_ar,
+         mm.alt_ar AS alt_text_ar
+       FROM media_library ml
+       LEFT JOIN media_metadata mm ON mm.media_id = ml.id
+       WHERE ml.is_public = true
+       ORDER BY ml.created_at DESC`
     );
 
     return c.json({
@@ -18,7 +26,7 @@ galleryRouter.get('/', async (c) => {
         id: g.id,
         title_ar: g.title_ar?.trim() || '',
         category_ar: g.category?.trim() || '',
-        image_url: g.cdn_url || g.file_url || '',
+        image_url: g.cdn_url || g.webp_url || g.file_url || '',
       })),
     });
   } catch (err: any) {
