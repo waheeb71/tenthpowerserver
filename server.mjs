@@ -554,7 +554,7 @@ const server = http.createServer(async (req, res) => {
           media_url: ad.media_url,
           thumbnail_url: ad.thumbnail_url || null,
           target_route: ad.target_route || '/contact',
-          action_title_ar: ad.action_title_ar || 'تواصل معنا الآن',
+          action_title_ar: ad.action_title_ar || 'اطلب عرض سعر',
           external_url: ad.external_url || null,
           start_date: ad.start_date || null,
           end_date: ad.end_date || null,

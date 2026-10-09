@@ -11,12 +11,13 @@ galleryRouter.get('/', async (c) => {
          ml.cdn_url,
          ml.webp_url,
          ml.file_url,
-         ml.category,
          mm.title_ar,
-         mm.alt_ar AS alt_text_ar
+         mm.alt_ar   AS alt_text_ar,
+         mm.caption_ar
        FROM media_library ml
        LEFT JOIN media_metadata mm ON mm.media_id = ml.id
-       WHERE ml.is_public = true
+       WHERE (ml.cdn_url IS NOT NULL OR ml.file_url IS NOT NULL)
+         AND (ml.mime_type LIKE 'image/%' OR ml.file_name ~* '\\.(jpg|jpeg|png|webp|avif)$')
        ORDER BY ml.created_at DESC`
     );
 
@@ -24,8 +25,8 @@ galleryRouter.get('/', async (c) => {
       success: true,
       data: rows.map((g) => ({
         id: g.id,
-        title_ar: g.title_ar?.trim() || '',
-        category_ar: g.category?.trim() || '',
+        title_ar: g.title_ar?.trim() || g.alt_text_ar?.trim() || g.caption_ar?.trim() || '',
+        category_ar: '',
         image_url: g.cdn_url || g.webp_url || g.file_url || '',
       })),
     });
