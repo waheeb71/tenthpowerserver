@@ -55,11 +55,15 @@ export async function handleAuthRoutes({
       );
 
       const user = rows[0];
-      if (user.is_banned) {
+      // Neon HTTP API may return boolean columns as strings or null — normalize
+      const isBanned = user.is_banned === true || user.is_banned === 'true' || user.is_banned === 1;
+      const isActive = user.is_active !== false && user.is_active !== 'false' && user.is_active !== 0 && user.is_active !== null;
+
+      if (isBanned) {
         return json({ success: false, error: 'account_banned', message: 'تم حظر هذا الحساب لمخالفة سياسة الاستخدام' }, 403);
       }
-      if (!user.is_active) {
-        return json({ success: false, error: 'account_inactive', message: 'هذا الحساب غير نشط حالياً' }, 403);
+      if (!isActive) {
+        return json({ success: false, error: 'account_inactive', message: 'هذا الحساب غير نشط حالياً. تواصل مع الدعم.' }, 403);
       }
 
       const token = signJwt(
